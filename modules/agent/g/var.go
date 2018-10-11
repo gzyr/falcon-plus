@@ -96,6 +96,16 @@ func SendToTransfer(metrics []*model.MetricValue) {
 		}
 	}
 
+	// add default endpoint
+	hostname, err := Hostname()
+	if err == nil {
+		for _, x := range metrics {
+			if x.Endpoint != "" {
+				x.Endpoint = hostname
+			}
+		}
+	}
+
 	debug := Config().Debug
 
 	if debug {
