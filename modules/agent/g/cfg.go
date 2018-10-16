@@ -21,6 +21,8 @@ import (
 	"sync"
 
 	"github.com/toolkits/file"
+	"io/ioutil"
+	"os/exec"
 )
 
 type PluginConfig struct {
@@ -91,11 +93,39 @@ func Hostname() (string, error) {
 		return hostname, nil
 	}
 
-	hostname, err := os.Hostname()
+	hostname, err := getHostNameFromProxy()
+	if err == nil && hostname != "" {
+		Config().Hostname = hostname
+		return hostname, nil
+	}
+
+	hostname, err = os.Hostname()
 	if err != nil {
 		log.Println("ERROR: os.Hostname() fail", err)
 	}
 	return hostname, err
+}
+
+func getHostNameFromProxy() (string, error) {
+	var (
+		hostname string
+		err      error
+	)
+	cmd := exec.Command("curl", "-k", "https://127.0.0.1:2001/hostname")
+	// 获取输出对象，可以从该对象中读取输出结果
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return hostname, err
+	}
+	defer stdout.Close()
+	if err := cmd.Start(); err != nil {
+		return hostname, err
+	}
+	opBytes, err := ioutil.ReadAll(stdout)
+	if err != nil {
+		return hostname, err
+	}
+	return string(opBytes), nil
 }
 
 func IP() string {

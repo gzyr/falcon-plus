@@ -44,11 +44,11 @@ fmt-check:
 	fi;
 
 $(CMD):
-	go build -o bin/$@/falcon-$@ ./modules/$@
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/$@/falcon-$@ ./modules/$@
 
 .PHONY: $(TARGET)
 $(TARGET): $(GOFILES)
-	go build -ldflags "-X main.GitCommit=`git rev-parse --short HEAD` -X main.Version=$(VERSION)" -o open-falcon
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.GitCommit=`git rev-parse --short HEAD` -X main.Version=$(VERSION)" -o open-falcon
 
 checkbin: bin/ config/ open-falcon
 
@@ -87,6 +87,20 @@ pack4docker: checkbin
 	@cp ./docker/ctrl.sh ./out/ && chmod +x ./out/ctrl.sh
 	@cp $(TARGET) ./out/$(TARGET)
 	tar -C out -zcf open-falcon-v$(VERSION).tar.gz .
+	@rm -rf out
+
+pack4agent: checkbin
+	@if [ -e out ] ; then rm -rf out; fi
+	@mkdir out
+	env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/agent/falcon-agent ./modules/agent
+	@cp ./bin/agent/falcon-agent ./out/
+	@cp ./modules/agent/cfg.json ./out/
+	@cp ./modules/agent/control ./out/
+	@mkdir out/plugins
+	@cp -r ./modules/agent/public ./out/agent/
+	@(cd ./out && ln -s ./agent/public/ ./public)
+	@(cd ./out && mkdir -p ./agent/plugin && ln -s ./agent/plugin/ ./plugin)
+	tar -C out -zcf falcon-agent-5.1.3.tar.gz .
 	@rm -rf out
 
 clean:
