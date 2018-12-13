@@ -100,7 +100,7 @@ func SendToTransfer(metrics []*model.MetricValue) {
 	hostname, err := Hostname()
 	if err == nil {
 		for _, x := range metrics {
-			if x.Endpoint != "" {
+			if x.Endpoint == "" {
 				x.Endpoint = hostname
 			}
 		}
